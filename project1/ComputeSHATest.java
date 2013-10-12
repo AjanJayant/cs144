@@ -45,14 +45,14 @@ public class ComputeSHATest {
 		 */
 		return Arrays.asList(new Object[][] 
 		{
-				{"sample-input.txt", "17a23c746fed66a6f285c665422deafcf51aca40\n"},
-				{"sample-input2.txt", "7284dbf86b6fa17d0411e1b1547b950f322650c6\n"},
-				{"sample-input3.txt", "da39a3ee5e6b4b0d3255bfef95601890afd80709\n"},
-				{"sample-input4.txt", "22003ac4ec8394e06548fd6319dab9b11b08d79d\n"},
-				{"MARBLES.GIF", "de64c4d51918c0bbcdf4cabb7425ebd15d93441e\n"},
-				{"GMARBLES.GIF", "05a64bd29b50c0e3036c134c52c2a0c9d147ddda\n"},
-				{"WFPC05.GIF", "888c80d2ce52f3126ceaa539f1e99b4a3cc6c10b\n"},
-				{"Example.jpg", "628a43d996686e654934e27c99e51afe432fc164\n"}
+				{"test-data/sample-input.txt", "17a23c746fed66a6f285c665422deafcf51aca40\n"},
+				{"test-data/sample-input2.txt", "7284dbf86b6fa17d0411e1b1547b950f322650c6\n"},
+				{"test-data/sample-input3.txt", "da39a3ee5e6b4b0d3255bfef95601890afd80709\n"},
+				{"test-data/sample-input4.txt", "22003ac4ec8394e06548fd6319dab9b11b08d79d\n"},
+				{"test-data/MARBLES.GIF", "de64c4d51918c0bbcdf4cabb7425ebd15d93441e\n"},
+				{"test-data/GMARBLES.GIF", "05a64bd29b50c0e3036c134c52c2a0c9d147ddda\n"},
+				{"test-data/WFPC05.GIF", "888c80d2ce52f3126ceaa539f1e99b4a3cc6c10b\n"},
+				{"test-data/Example.jpg", "628a43d996686e654934e27c99e51afe432fc164\n"}
 		});
 	}
 	

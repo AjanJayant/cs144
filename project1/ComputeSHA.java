@@ -69,7 +69,7 @@ public class ComputeSHA {
 		}
 		catch(FileNotFoundException f)
 		{
-			System.out.println("File not present");
+			System.exit(1);
 		}
 		c.printSHA();
 	}
