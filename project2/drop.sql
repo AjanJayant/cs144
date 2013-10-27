@@ -1,0 +1,7 @@
+-- Ajan Jayant, 904039631
+-- drop.sql
+
+DROP TABLE IF EXISTS Item;
+DROP TABLE IF EXISTS User;
+DROP TABLE IF EXISTS ItemCategory;
+DROP TABLE IF EXISTS Bid;

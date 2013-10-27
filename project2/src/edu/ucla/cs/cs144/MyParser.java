@@ -46,6 +46,19 @@ class MyParser {
     static final String columnSeparator = "|*|";
     static DocumentBuilder builder;
     
+    /*
+     * File variables used to write xml data to character
+     * stream outputs, defined as the file names which
+     * will be loaded into MySQL tables.
+     * bidID is used so that two similar bids can be treated separately
+     *  and deleted by sort -u
+     */
+    private static BufferedWriter itemFileWriter;
+    private static BufferedWriter userFileWriter;
+    private static BufferedWriter categoryFileWriter;
+    private static BufferedWriter bidFileWriter;
+    private static int bidID = 0;
+    
     static final String[] typeName = {
 	"none",
 	"Element",
@@ -183,11 +196,212 @@ class MyParser {
         /* Fill in code here (you will probably need to write auxiliary
             methods). */
         
+        Element[] items = getElementsByTagNameNR(doc.getDocumentElement(), "Item");
         
+        // Parse through data to generate appropriate load files
+        try {
+                for(int i = 0; i< items.length; i++)
+                {
+                        parseItem(items[i]);
+                        parseUser(items[i]);
+                        parseCategories(items[i]);
+                        parseBid(items[i]);
+                }
+        }
+        catch (IOException e)
+        {
+                e.printStackTrace();
+        }
         
         /**************************************************************/
-        
     }
+    
+    
+    /**
+     * Method parses one item from the given xml file.<p>
+     * parseItem obtains the value via the atrributes for
+     * itemID and sellerID.
+     * parseItem obtains the element text for name, Buy_Price,
+     * First_Bid, Started and Ends. The strip and timestamp function
+     * are used to format the text.
+     * @param pass in the root element
+     * @throws IOException thrown if there is an error reading in the value
+     */
+    public static void parseItem(Element item) throws IOException
+    {
+            // Collect variables for each column
+            String itemID = item.getAttribute("ItemID");
+            
+            Element seller = getElementByTagNameNR(item, "Seller");
+        
+            String sellerID = seller.getAttribute("UserID");
+            
+            String name = getElementTextByTagNameNR(item, "Name");
+            
+            String buyPrice = strip(getElementTextByTagNameNR(item, "Buy_Price"));
+            String firstBid = strip(getElementTextByTagNameNR(item, "First_Bid"));
+            
+            String itemStarted = getElementTextByTagNameNR(item, "Started");
+            String itemEnds = getElementTextByTagNameNR(item, "Ends");
+            String started = "" + timestamp(itemStarted);
+            String ends = "" + timestamp(itemEnds);
+            
+            String desc = getElementTextByTagNameNR(item, "Description");
+            if(desc.length() > 4000)
+                    desc = desc.substring(0, 4000);
+            
+            // Write out row
+            load(itemFileWriter, itemID, sellerID, name, buyPrice, firstBid, started, ends, desc);
+    }
+    
+    /**
+     * Method parses one item from the given xml file.<p>
+     * parseUser obtains the value via the atrributes for
+     * UserID and Rating.
+     * parseUser obtains the element text for Location and Country
+     * After the seller data from the xml element is extracted, the information
+     * for bidders is extracted.
+     * @param pass in the root element
+     * @throws IOException thrown if there is an error reading in the value
+     */
+    public static void parseUser(Element item) throws IOException
+    {
+            // Collect variables for each column 
+            Element user = getElementByTagNameNR(item, "Seller");
+            
+            String userID = user.getAttribute("UserID");
+            String rating = user.getAttribute("Rating");
+            
+            String location = getElementText(getElementByTagNameNR(item, "Location"));
+            String country = getElementText(getElementByTagNameNR(item, "Country"));
+            
+            if(location == null)
+                    location = "";
+            
+            if(country == null)
+                    country = "";
+            
+            load(userFileWriter, userID, rating, location, country);
+            
+            Element[] bids = getElementsByTagNameNR(getElementByTagNameNR(item, "Bids"), "Bid");
+            
+            for(int i = 0; i < bids.length; i++)
+            {
+                    Element 	bidder = getElementByTagNameNR(bids[i], "Bidder");
+                    String 		bidderID = bidder.getAttribute("UserID");
+                    String 		bidderRating = bidder.getAttribute("Rating");
+                    String 		bidderLocation = getElementTextByTagNameNR(bidder, "Location");
+                    String 		bidderCountry = getElementTextByTagNameNR(bidder, "Country");            
+                    if(location == null)
+                    	location = "";            
+                    if(country == null)
+                            country = "";
+
+                    load(userFileWriter, bidderID, bidderRating, bidderLocation, bidderCountry);
+            }
+    }
+    
+    /**
+     * Method parses one item from the given xml file.<p>
+     * parseCategories obtains the value via the atrributes for itemID <p>
+     * parseCategories obtains the element text for each category
+     * which are eteracted from 1 item element.
+     * @param pass in the root element
+     * @throws IOException thrown if there is an error reading in the value
+     */
+    public static void parseCategories(Element item) throws IOException
+    {
+            // Collect variables for each column
+            String itemID = item.getAttribute("ItemID");
+            
+            Element[] categories = getElementsByTagNameNR(item, "Category");
+            
+            for(int i = 0; i < categories.length; i++)
+            {
+                    String category = getElementText(categories[i]);
+                    
+                    // Write out row
+                    load(categoryFileWriter, itemID, category);
+            }
+    }
+    
+    /**
+     * Method parses one item from the given xml file.<p>
+     * parseBid obtains the each data for each Bid in an item and puts it into
+     * an array. <p>
+     * parseBid goes through each array element and finds the Bidder, UserID, 
+     * Time and Amount
+     * @param pass in the root element
+     * @throws IOException thrown if there is an error reading in the value
+     */
+    public static void parseBid(Element item) throws IOException
+    {
+            // Collect variables for each column
+            Element[] bids = getElementsByTagNameNR(getElementByTagNameNR(item, "Bids"), "Bid");
+            String itemID = item.getAttribute("ItemID");
+            
+            for(int i = 0; i < bids.length; i++)
+            {
+                    Element bidder = getElementByTagNameNR(bids[i], "Bidder");
+                    String userID = bidder.getAttribute("UserID");
+                    String bid_time = getElementTextByTagNameNR(bids[i], "Time");
+                    String time = "" + timestamp(bid_time);
+                    
+                    String amount = strip(getElementTextByTagNameNR(bids[i], "Amount"));
+
+                    load(bidFileWriter,"" + bidID++, userID, itemID, time, amount);
+            }
+    }
+    
+    /**
+     * Method converts the xml date input into output.<p>
+     * timestamp uses parse. The function call is checked for exceptions <p>
+     *
+     * @param pass in date as string from xml document
+     * @throws IOException thrown if there is an error reading in the value
+     */
+    private static String timestamp(String date)
+    {
+            SimpleDateFormat format_in = new SimpleDateFormat("MMM-dd-yy HH:mm:ss");
+            
+            SimpleDateFormat format_out = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+           
+            StringBuffer buffer = new StringBuffer();
+               
+            try
+            {
+            	Date parsedDate = format_in.parse(date);
+            
+            	return "" + format_out.format(parsedDate);
+            }
+            catch(ParseException pe) {
+                System.err.println("Parse error");
+                return "Parse error";
+            }
+    }
+    
+    // Add column separators to a row of data
+    private static String formatRow(String[] input)
+    {
+            String formatted_input = "";
+            
+            int i = 0;
+            for(; i < input.length-1; i++)
+            {
+                    formatted_input += input[i] + columnSeparator;
+            }
+            formatted_input += input[i];
+            
+            return formatted_input;
+    }
+    
+    // Write an appropriate row for load file
+    private static void load(BufferedWriter output, String... args) throws IOException
+    {
+            output.write(formatRow(args));
+            output.newLine();
+    }
+
     
     public static void main (String[] args) {
         if (args.length == 0) {
@@ -212,10 +426,29 @@ class MyParser {
             System.exit(2);
         }
         
-        /* Process all files listed on command line. */
-        for (int i = 0; i < args.length; i++) {
-            File currentFile = new File(args[i]);
-            processFile(currentFile);
+        try
+        {
+            itemFileWriter = new BufferedWriter(new FileWriter("item.dat",true));
+            userFileWriter = new BufferedWriter(new FileWriter("user.dat",true));
+            categoryFileWriter = new BufferedWriter(new FileWriter("category.dat",true));
+            bidFileWriter = new BufferedWriter(new FileWriter("bid.dat",true));
+            
+            /* Process all files listed on command line. */
+            for (int i = 0; i < args.length; i++) {
+            	File currentFile = new File(args[i]);
+            	processFile(currentFile);
+            }
+            
+            itemFileWriter.close();
+            userFileWriter.close();
+            categoryFileWriter.close();
+            bidFileWriter.close();
         }
+        catch (IOException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
     }
 }
