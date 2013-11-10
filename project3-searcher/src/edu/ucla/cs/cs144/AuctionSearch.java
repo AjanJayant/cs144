@@ -47,7 +47,56 @@ public class AuctionSearch implements IAuctionSearch {
 	public SearchResult[] basicSearch(String query, int numResultsToSkip, 
 			int numResultsToReturn) {
 		// TODO: Your code here!
-		return new SearchResult[0];
+		try
+		{
+			SearchResult[] searchResult;
+
+			String directory = System.getenv("LUCENE_INDEX") + "/basic";
+			boolean skipped = false;
+			boolean returnedAll = false;
+			
+			IndexSearcher searcher = new IndexSearcher(directory);
+			QueryParser qParser = new QueryParser("content", new StandardAnalyzer());
+			Query q = qParser.parse(query);
+			Hits hits = searcher.search(q);
+
+			searchResult = new SearchResult[hits.length()];
+			
+			if(numResultsToSkip == 0)
+				skipped = true;	
+			if(numResultsToReturn == 0)
+				numResultsToReturn = hits.length();
+				
+			for(int i = 0; i < hits.length() ; i++) 
+			{
+				if(returnedAll)
+					break;
+				else if(i == numResultsToReturn - 1)
+					returnedAll = true;
+				if(skipped) 
+				{
+					Document doc = hits.doc(i);
+					String itemId = doc.get("ItemID");
+					String itemName = doc.get("ItemName");
+					SearchResult s = new SearchResult();
+					s.setItemId(itemId);
+					s.setName(itemName);
+					searchResult[i] = s;
+				}
+				else if(i > numResultsToSkip)
+					skipped = true;
+				
+        	}
+        
+			return searchResult;
+		}
+		catch(Exception e)
+		{
+			System.out.println(e.getMessage());
+			return new SearchResult[0];
+
+		}
+
 	}
 
 	public SearchResult[] advancedSearch(SearchConstraint[] constraints, 

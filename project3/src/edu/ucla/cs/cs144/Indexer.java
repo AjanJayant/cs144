@@ -23,20 +23,7 @@ public class Indexer {
         itemRS = null;
         categoryRS = null;
     }
-    
-    public void getDataFromQuery(ResultSet rs, String q)
-    {
-        try
-        {
-            Connection ca = DbManager.getConnection(true);
-            Statement s = ca.createStatement();
-            rs = s.executeQuery(q);
-        }
-        catch(Exception e)
-        {
-            System.err.println("Exception in getItemData");
-        }
-    }
+
     
     public void rebuildIndexes() {
 
@@ -74,19 +61,23 @@ public class Indexer {
             Connection c = DbManager.getConnection(true);
             Statement s = c.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                                             ResultSet.CONCUR_UPDATABLE);
+            
             ResultSet itemRS = s.executeQuery("SELECT * FROM Item");
             
             String directory = System.getenv("LUCENE_INDEX") + "/basic";
             IndexWriter indexWriter = new IndexWriter(directory, new StandardAnalyzer(), true);
-
             
             while(itemRS.next())
             {
+                //
                 Document doc = new Document();
-                int id = itemRS.getInt("ItemID");
+                                int id = itemRS.getInt("ItemID");
                 String sid = "" + id;
                 String categories = "";
-                ResultSet categoryRS = s.executeQuery("SELECT * FROM ItemCategory where ItemID=" + id);
+                
+                Statement sa = c.createStatement();
+
+                ResultSet categoryRS = sa.executeQuery("SELECT * FROM ItemCategory where ItemID=" + id);
                 
                 while(categoryRS.next())
                 {
@@ -104,16 +95,18 @@ public class Indexer {
                 
                 indexWriter.addDocument(doc);
                 categoryRS.close();
+                 
 
             }
             indexWriter.close();
             itemRS.close();
+            
         }
         
         catch (Exception e)
         {
-            //System.err.println("Error in Ajan's code rebuildIndexes");
-            //System.err.println(e.getMessage());
+            System.err.println("Error in Ajan's code rebuildIndexes");
+            System.err.println(e.getMessage());
         }
 
 
