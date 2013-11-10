@@ -15,9 +15,29 @@ import org.apache.lucene.index.IndexWriter;
 public class Indexer {
     
     /** Creates a new instance of Indexer */
+    ResultSet itemRS;
+    ResultSet categoryRS;
+    
     public Indexer() {
+        
+        itemRS = null;
+        categoryRS = null;
     }
- 
+    
+    public void getDataFromQuery(ResultSet rs, String q)
+    {
+        try
+        {
+            Connection ca = DbManager.getConnection(true);
+            Statement s = ca.createStatement();
+            rs = s.executeQuery(q);
+        }
+        catch(Exception e)
+        {
+            System.err.println("Exception in getItemData");
+        }
+    }
+    
     public void rebuildIndexes() {
 
         Connection conn = null;
@@ -49,6 +69,53 @@ public class Indexer {
 	 * 
 	 */
 
+        try
+        {
+            Connection c = DbManager.getConnection(true);
+            Statement s = c.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                            ResultSet.CONCUR_UPDATABLE);
+            ResultSet itemRS = s.executeQuery("SELECT * FROM Item");
+            
+            String directory = System.getenv("LUCENE_INDEX") + "/basic";
+            IndexWriter indexWriter = new IndexWriter(directory, new StandardAnalyzer(), true);
+
+            
+            while(itemRS.next())
+            {
+                Document doc = new Document();
+                int id = itemRS.getInt("ItemID");
+                String sid = "" + id;
+                String categories = "";
+                ResultSet categoryRS = s.executeQuery("SELECT * FROM ItemCategory where ItemID=" + id);
+                
+                while(categoryRS.next())
+                {
+                    categories += (categoryRS.getString("Category") + " ")        ;
+                }
+                
+                String fullSearchable = itemRS.getString("Name") + " " + itemRS.getString("Description") + " "
+                + categories;
+                
+                doc.add(new Field("ItemID", sid, Field.Store.YES, Field.Index.NO));
+                doc.add(new Field("ItemName", itemRS.getString("Name"), Field.Store.YES, Field.Index.TOKENIZED));
+                doc.add(new Field("Description", itemRS.getString("Description"), Field.Store.YES, Field.Index.TOKENIZED));
+                doc.add(new Field("Category", categories, Field.Store.YES, Field.Index.TOKENIZED));
+                doc.add(new Field("content", fullSearchable, Field.Store.YES, Field.Index.TOKENIZED));
+                
+                indexWriter.addDocument(doc);
+                categoryRS.close();
+
+            }
+            indexWriter.close();
+            itemRS.close();
+        }
+        
+        catch (Exception e)
+        {
+            //System.err.println("Error in Ajan's code rebuildIndexes");
+            //System.err.println(e.getMessage());
+        }
+
 
         // close the database connection
 	try {
@@ -56,10 +123,10 @@ public class Indexer {
 	} catch (SQLException ex) {
 	    System.out.println(ex);
 	}
-    }    
+    }
 
     public static void main(String args[]) {
         Indexer idx = new Indexer();
         idx.rebuildIndexes();
-    }   
+    }
 }

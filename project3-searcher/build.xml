@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project basedir="." default="compile" name="project3-searcher">
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="src-dir" location="src" />
+    <property name="obj-dir" location="bin" />
+    <property name="build-dir" location="build" />
+    <property name="lib-dir" location="lib" />
+    <property name="extlib-dir" location="/usr/local/share/java" />
+
+    <path id="classpath">
+        <fileset dir="${lib-dir}" includes="**/*.jar"/>
+        <fileset dir="${extlib-dir}" includes="**/*.jar"/>
+        <pathelement location="${obj-dir}"/>
+    </path>
+
+    <target name="init">
+		<mkdir dir="${obj-dir}" />
+		<mkdir dir="${lib-dir}" />
+    </target>
+
+    <target name="clean">
+		<delete dir="${obj-dir}" />
+    </target>
+
+    <target name="compile" depends="init">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" srcdir="${src-dir}" destdir="${obj-dir}" includes="edu/ucla/cs/cs144/*.java">
+            <classpath refid="classpath"/>
+        </javac>
+    </target>    
+
+    <target name="run" depends="compile">
+        <java classname="edu.ucla.cs.cs144.AuctionSearchTest" failonerror="true" fork="yes">
+            <classpath refid="classpath"/>
+            <jvmarg value="-DLUCENE_INDEX=${env.LUCENE_INDEX}"/>
+        </java>
+    </target>
+
+    <target name="build" depends="clean">
+        <echo message="${ant.project.name}: AuctionSearchService.aar"/>
+
+                <!-- compile the class files first -->
+                <antcall target="compile" />
+
+                <!-- copy necessary files to include in the aar file -->
+                <mkdir dir="${build-dir}/lib" />
+                <copy todir="${build-dir}/lib" preservelastmodified="true" overwrite="true">
+                        <fileset dir="${lib-dir}" />
+                        <fileset dir="${extlib-dir}" />
+                </copy>
+                <mkdir dir="${build-dir}/META-INF" />
+                <copy file="WebContents/META-INF/services.xml" tofile="${build-dir}/META-INF/services.xml" preservelastmodified="true" overwrite="true" />
+                <copy todir="${build-dir}" preservelastmodified="true" overwrite="true">
+                        <fileset dir="${obj-dir}" />
+                </copy>
+
+                <!-- create the war file -->
+                <jar basedir="${build-dir}" destfile="${build-dir}/AuctionSearchService.aar"/>
+
+    </target>
+
+</project>
