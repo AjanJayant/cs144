@@ -240,7 +240,10 @@ class MyParser {
             
             String buyPrice = strip(getElementTextByTagNameNR(item, "Buy_Price"));
             String firstBid = strip(getElementTextByTagNameNR(item, "First_Bid"));
-            
+            String curr = strip(getElementTextByTagNameNR(item, "Currently"));
+
+            //System.out.println(curr);
+        
             String itemStarted = getElementTextByTagNameNR(item, "Started");
             String itemEnds = getElementTextByTagNameNR(item, "Ends");
             String started = "" + timestamp(itemStarted);
@@ -251,7 +254,7 @@ class MyParser {
                     desc = desc.substring(0, 4000);
             
             // Write out row
-            load(itemFileWriter, itemID, sellerID, name, buyPrice, firstBid, started, ends, desc);
+            load(itemFileWriter, itemID, sellerID, name, buyPrice, firstBid, curr, started, ends, desc);
     }
     
     /**
